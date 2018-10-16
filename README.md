@@ -36,7 +36,7 @@ service rwd start
 
 ## Use
 
-Rwd is ready for use, but you can edit the configuration file in /root/scripts/rwd/rwd.conf by simply restarting rwd to take effect.
+rwd is ready for use, but you can edit the configuration file in /root/scripts/rwd/rwd.conf by simply restarting rwd to take effect.
 
 Monitor the log:
 ```
