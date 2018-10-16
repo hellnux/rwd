@@ -1,0 +1,122 @@
+#!/bin/bash
+# chkconfig: 3 99 99
+# description: Service script for rwd
+# Created in 18/05/2012 - by Danillo Costa (hellnux)
+
+# MIT License
+#
+# Copyright (c) 2018 Danillo Costa Ferreira
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+
+#####################################################################################
+#                               Functions
+#####################################################################################
+
+function usage(){
+    echo "Usage: $0 {start|stop|restart|status}"
+	exit 2
+}
+
+function dateNow () {
+	date +%Y/%m/%d" "%k:%M:%S
+}
+
+function number_args(){
+	if [ $number_args -ne $1 ]; then usage; fi  
+}
+
+function get_pid(){
+	cat "$pid_file"
+}
+
+function status(){
+	if [ -e "$pid_file" ]; then
+	    pid=`get_pid`
+	    kill -0 "$pid" 2> /dev/null
+	    if [ "$?" == "0" ] && [ "`grep -F "$executable" /proc/$pid/cmdline`" != "" ]; then 
+	            status="Started"
+	    else
+	            status="Stopped"
+	    fi
+	else
+		status="Stopped"
+	fi
+	echo "$status"
+}
+
+function status_to_log() {
+	dateTmp=`dateNow`
+	if [ "`status`" == "Stopped" ]; then
+		echo "$dateTmp - $script_name Stopped" >> "$log_file"
+	#else #start is made on main code
+	#	echo "$dateTmp - $script_name Started" >> "$log_file"
+	fi
+}
+
+function start(){
+	if [ "`status`" == "Started" ]; then
+	        echo "[`dateNow`] Error: '$script_name' is already running with the pid: `get_pid`"
+			exit 3
+	else
+	        python "$path/$executable" &
+	#status_to_log #start is made on main code
+	fi
+}
+
+function stop(){
+	kill -9 `get_pid` 2> /dev/null
+	status_to_log
+}
+
+function restart(){
+	stop
+	sleep 2
+	start
+}
+
+#####################################################################################
+#                                       Main
+#####################################################################################
+
+version="18.0219"
+script_name="rwd"
+executable="$script_name.py"
+path="/root/scripts/$script_name/"
+main_arg="$1"
+number_args=$#
+pid_file="$path/$script_name.pid"
+log_file="$path/$script_name.log"
+
+# Check the software is installed
+if [ ! -e "$path/$executable" ]; then
+	echo "Error: $script_name not installed."
+	exit 1
+fi
+
+case "$main_arg" in
+	start)	  number_args 1; start  ;;
+	stop)     number_args 1; stop   ;;
+	restart)  number_args 1; restart;;
+	status)	  number_args 1; status ;;
+	*) usage ;;
+esac
+
+exit 0
