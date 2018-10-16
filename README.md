@@ -4,11 +4,12 @@
 
 ## Introduction
 
-Project focused on keeping web hosting services operative, or prolonging online time, even in unfavorable situations. Made, tested, and used only on WHM/cPanel servers.
+Project focused on keeping web hosting services operative, prolonging online time, even in unfavorable situations. Made, tested and used only on WHM/cPanel servers.
 
-By identifying that Apache or MySQL is not running, or that the machine has a high load average, or high swap memory usage, rwd will restart Apache and MySQL to keep them online. Actions are logged, and you can enable e-mail notifications.
+By identifying that Apache or MySQL is not running, that the server has a high load average or high swap memory usage, rwd will restart Apache and/or MySQL to keep them online. The actions are recorded on log file and it possible enable e-mail notifications.
 
-Initially developed to cover the WHM/cPanel Monitor deficiency. Started in April 2011 in shell script, being rewritten in python 2 in 2012, gained new features and improvements until December 2014, when it received no further modification due to my lack of availability, which is why I am opening the code.
+Initially developed to cover the WHM/cPanel monitor deficiency. Started in April 2011 in shell script, being rewritten in python 2 in 2012, gained new features and improvements until December 2014, when it received no further modification due to my lack of availability, which is why I am opening the code.
+
 
 ## Prerequisites
 
