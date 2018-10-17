@@ -10,7 +10,7 @@ Initially developed to cover the WHM/cPanel monitor deficiency. Started in April
 
 ## How rwd acts
 
-Each cycle is performed 3 checks:
+Each cycle of 20 seconds (default) is performed 3 types of checks:
 
 1. Swap - By default, upon reaching 50% swap usage, Apache and MySQL will be restarted.
 2. MySQL - If MySQL is not operating, MySQL will be restarted.
