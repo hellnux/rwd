@@ -1,5 +1,3 @@
-## Under construction
-
 # rwd - Restart When Down
 
 ## Introduction
