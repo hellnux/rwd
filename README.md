@@ -16,7 +16,7 @@ Each cycle is performed 3 checks:
 2. MySQL - If MySQL is not operating, MySQL will be restarted.
 3. Apache - If Apache is not online or the server is overloaded, Apache will restart.
 
-There are mechanisms that prevent multiple restarts in a short time.
+There are mechanisms that prevent multiple restarts in a short time, in cases of such as high swap usage or overloaded system.
 
 ## Prerequisites
 
