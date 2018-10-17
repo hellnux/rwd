@@ -8,6 +8,15 @@ By identifying that Apache or MySQL is not running, that the server has a high l
 
 Initially developed to cover the WHM/cPanel monitor deficiency. Started in April 2011 in shell script, being rewritten in python 2 in 2012, gained new features and improvements until December 2014, when it received no further modification due to my lack of availability, which is why I am opening the code.
 
+## How rwd acts
+
+Each cycle is performed 3 checks:
+
+1. Swap - By default, upon reaching 50% swap usage, Apache and MySQL will be restarted.
+2. MySQL - If MySQL is not operating, MySQL will be restarted.
+3. Apache - If Apache is not online or the server is overloaded, Apache will restart.
+
+There are mechanisms that prevent multiple restarts in a short time.
 
 ## Prerequisites
 
@@ -69,19 +78,11 @@ systemctl daemon-reload 2> /dev/null
 rm -Rf /root/scripts/rwd/
 ```
 
-## How rwd acts
-
-Each cycle is performed 3 checks:
-
-1. Swap - By default, upon reaching 50% swap usage, Apache and MySQL will be restarted.
-2. MySQL - If MySQL is not operating, MySQL will be restarted.
-3. Apache - If Apache is not online or the server is overloaded, Apache will restart.
-
 ## Authors
 
 * **Danillo Costa** - [hellnux](https://github.com/hellnux)
 
-See also the list of [contributors](https://github.com/hellnux/rwd/contributors) who participated in this project.
+See also the list of [contributors](https://github.com/hellnux/rwd/contributors) and [here](CONTRIBUTING.md) who participated in this project.
 
 ## License
 
