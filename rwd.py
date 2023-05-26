@@ -36,6 +36,14 @@ import signal
 import traceback
 import urllib2
 
+#Changelog
+# 23.0526
+# - Changed algorithm of the "total" variable in the get_swap function, since in AlmaLinux 8 
+#   the value from variable "c" was coming with "\t\t" instead of "\t"
+# 22.0910
+# - Commented out parts that are incompatible with AlmaLinux 8 in the Verify_swap function 
+#   and commented out variables pid_file_mysql and pid_file_apache
+
 #####################################################################################
 #                               Classes
 #####################################################################################
@@ -58,14 +66,15 @@ class sleep_lock_swap(threading.Thread):
 
 def get_semi_constants():
         global hostname, ip_server, num_cpu, sender, subject, subject_top
-        global subject_fail, pid_file_mysql
+        #global subject_fail, pid_file_mysql # Not compatible with AlmaLinux8
+        global subject_fail
         hostname        = socket.gethostname()
         ip_server       = socket.gethostbyname(hostname)
         num_cpu         = detect_cpu()
         sender          = "root@" + hostname 
         subject         = "[" + script_name + " - " + ip_server + "]"
         subject_top     = subject + " Top"
-        pid_file_mysql  = "/var/lib/mysql/" + hostname + ".pid"
+        #pid_file_mysql  = "/var/lib/mysql/" + hostname + ".pid" # Not compatible with AlmaLinux8
 
 def date_now_mail():
         '''Return date in mail format for smtplib. Not used. '''
@@ -257,7 +266,7 @@ def get_swap(col):
         f.close()
         line = len(c)
         while line > 0:
-                total = (total + int(c[line -1].split('\t')[col]))
+                total = (total + int(c[line -1].replace('\t\t', '\t').split('\t')[col]))
                 line = line - 1
         else:
                 return total / 1024 # in MB
@@ -280,12 +289,12 @@ def get_exception_only():
         return "".join(trace).replace("\n"," | ")
 
 def kill_app(pid, app_name):
-	trace_only = ""
+        trace_only = ""
         try:
                 os.kill(int(pid), signal.SIGKILL) # Bug FUTEX (strace) 9
         except:
                 trace_only = get_exception_only() #etype, value
-	timestamp = date_now_log()
+        timestamp = date_now_log()
         if trace_only:
                 msg = timestamp + ' - Warning: Unable to kill ' + app_name + ' - ' + trace_only + '\n' #canalgama aborta rwd aqui '.'   
         else:
@@ -310,8 +319,8 @@ def verify_swap():
         if "sleep_lock_swap" not in str(threading.enumerate()):
                 swap_total = get_swap(-3)
                 swap_used  = get_swap(-2)
-                pid_apache = get_pid(pid_file_apache)
-                pid_mysql  = get_pid(pid_file_mysql)
+                #pid_apache = get_pid(pid_file_apache) # Not compatible with AlmaLinux8
+                #pid_mysql  = get_pid(pid_file_mysql) # Not compatible with AlmaLinux8
                 if swap_used > ((swap_total * swap_max_allow) / 100):
                         # Write in log file
                         aux = "(" + str(swap_used) + '/' + str(swap_total) + ")"
@@ -325,8 +334,8 @@ def verify_swap():
                                 if send_top == "on":
                                         top_output = get_stdout_shell(cmd_top)
                         # Restart Apache and MySQL
-                        msg_ka = kill_app(pid_apache, "Apache")
-                        msg_km = kill_app(pid_mysql, "MySQL")
+                        #msg_ka = kill_app(pid_apache, "Apache") # Not compatible with AlmaLinux8
+                        #msg_km = kill_app(pid_mysql, "MySQL") # Not compatible with AlmaLinux8
                         return_apache = os.system('/scripts/restartsrv httpd')
                         timestamp_a = date_now_log()
                         return_mysql  = os.system('/scripts/restartsrv mysql')
@@ -473,7 +482,7 @@ def verify_apache():
 #                                       Main
 #####################################################################################
 
-version         = "18.0220" # Date format YY.MMDD
+version         = "23.0526" # Date format YY.MMDD
 script_name     = "rwd"
 path            = "/root/scripts/" + script_name + "/"
 conf_file       = path + script_name + ".conf"
@@ -481,7 +490,7 @@ log_file        = path + script_name + ".log"
 out_file        = path + script_name + ".out"
 tmp_file        = path + script_name + ".tmp" # used by debug
 swap_file       = "/proc/swaps"
-pid_file_apache = "/usr/local/apache/logs/httpd.pid"
+#pid_file_apache = "/usr/local/apache/logs/httpd.pid" # Not compatible with AlmaLinux8
 lock_EA         = "/usr/local/apache/AN_EASYAPACHE_BUILD_IS_CURRENTLY_RUNNING"
 pid_file_this   = path + "/" + script_name + ".pid"
 cmd_top         = "export COLUMNS=300 ; top -cbn 1 | sed 's/ *$//g' | grep -v \"top -cbn 1\" | grep -v \"sed 's/ *$//g'\""
@@ -492,7 +501,7 @@ get_semi_constants()
 
 # Check user is root
 if os.getuid() != 0:
-        print "Error: Need a root to execute."
+        print "Error: Need root to execute."
         sys.exit(1)
 
 # Check if rwd is already is running
@@ -523,22 +532,22 @@ load_avg_old = get_loadavg()
 
 while 1:
         # Verify Swap
-	try:
-        	verify_swap()
+        try:
+                verify_swap()
         except:
                 msg_log =  date_now_log() + " Error: verify_swap():" + get_exception_only()
-                write_file(log_file, msg_log)   
+                write_file(log_file, msg_log)
         # Verify Apache
-	try:
-        	verify_apache()
+        try:
+                verify_apache()
         except:
                 msg_log =  date_now_log() + " Error: verify_apache():" + get_exception_only()
-                write_file(log_file, msg_log)        
+                write_file(log_file, msg_log)
         # Verify MySQL
-	try:        
-        	verify_mysql()
+        try:
+                verify_mysql()
         except:
                 msg_log =  date_now_log() + " Error: verify_mysql():" + get_exception_only()
-                write_file(log_file, msg_log)   
+                write_file(log_file, msg_log)
         #out_tmp(s+m+a) # 4debug
         time.sleep(delay_check)
