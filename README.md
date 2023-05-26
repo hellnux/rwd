@@ -22,6 +22,7 @@ There are mechanisms that prevent multiple restarts in a short time, in cases of
 
 - WHM/cPanel
 - CentOS 6/7
+- AlmaLinux 8
 - Uncheck Apache and Mysql from the "Monitor" column in "Service Manager" of WHM, to avoid conflict.
 
 ## Installation
