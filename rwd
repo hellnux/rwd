@@ -25,6 +25,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+#Changelog
+# 23.0918
+#  - Implemented WHM compatibility in AlmaLinux 9, in the python 2.x check
+#  - Modified grep on status function for binary file
+# 22.0910
+#  - Implemented python 2.x check
 
 #####################################################################################
 #                               Functions
@@ -32,7 +38,7 @@
 
 function usage(){
     echo "Usage: $0 {start|stop|restart|status}"
-	exit 2
+	exit 3
 }
 
 function dateNow () {
@@ -51,7 +57,7 @@ function status(){
 	if [ -e "$pid_file" ]; then
 	    pid=`get_pid`
 	    kill -0 "$pid" 2> /dev/null
-	    if [ "$?" == "0" ] && [ "`grep -F "$executable" /proc/$pid/cmdline`" != "" ]; then 
+	    if [ "$?" == "0" ] && [ -n "$(grep -aF "$executable" /proc/$pid/cmdline | tr -d '\0')" ]; then 
 	            status="Started"
 	    else
 	            status="Stopped"
@@ -76,7 +82,7 @@ function start(){
 	        echo "[`dateNow`] Error: '$script_name' is already running with the pid: `get_pid`"
 			exit 3
 	else
-	        python "$path/$executable" &
+	        $py_exec "$path/$executable" &
 	#status_to_log #start is made on main code
 	fi
 }
@@ -96,7 +102,7 @@ function restart(){
 #                                       Main
 #####################################################################################
 
-version="18.0219"
+version="23.0918"
 script_name="rwd"
 executable="$script_name.py"
 path="/root/scripts/$script_name/"
@@ -109,6 +115,18 @@ log_file="$path/$script_name.log"
 if [ ! -e "$path/$executable" ]; then
 	echo "Error: $script_name not installed."
 	exit 1
+fi
+
+# Check python 2.x is installed
+if [ "$(python -c 'import sys; print sys.version_info' 2> /dev/null | grep "(2,")" != ""  ]; then
+	py_exec="python"
+elif [ "$(python2 -c 'import sys; print sys.version_info' 2> /dev/null)" != "" ]; then
+	py_exec="python2"
+elif [ -e /usr/local/cpanel/3rdparty/bin/python2.7 ]; then # WHM AlmaLinux 9.x
+	py_exec="/usr/local/cpanel/3rdparty/bin/python2.7"
+else
+	echo "Error: python 2.x not found."	
+	exit 2
 fi
 
 case "$main_arg" in
