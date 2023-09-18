@@ -4,16 +4,16 @@
 
 Project focused on keeping web hosting services operative, prolonging online time, even in unfavorable situations. Made, tested and used only on WHM/cPanel servers.
 
-By identifying that Apache or MySQL is not running, that the server has a high load average or high swap memory usage, rwd will restart Apache and/or MySQL to keep them online. The actions are recorded on log file and it possible enable e-mail notifications.
+By identifying that Apache or MySQL is not running, or that the server has a high load average or high swap memory usage, rwd will restart Apache and/or MySQL to keep them online. The actions are recorded on log file and it possible enable e-mail notifications.
 
-Initially developed to cover the WHM/cPanel monitor deficiency. Started in April 2011 in shell script, being rewritten in python 2 in 2012, gained new features and improvements until December 2014, when it received no further modification due to my lack of availability, which is why I am opening the code.
+Initially developed to cover the WHM/cPanel monitor deficiency. Started in April 2011 in shell script, being rewritten in python 2 in 2012, gained new features and improvements until December 2014, and has been receiving maintenance to be compatible with recent operating systems.
 
 ## How rwd acts
 
 Each cycle of 20 seconds (default) is performed 3 types of checks:
 
 1. Swap - By default, upon reaching 50% swap usage, Apache and MySQL will be restarted.
-2. MySQL - If MySQL is not operating, MySQL will be restarted.
+2. MySQL - If MySQL is not running, MySQL will be restarted.
 3. Apache - If Apache is not online or the server is overloaded, Apache will restart.
 
 There are mechanisms that prevent multiple restarts in a short time, in cases of such as high swap usage or overloaded system.
@@ -23,6 +23,7 @@ There are mechanisms that prevent multiple restarts in a short time, in cases of
 - WHM/cPanel
 - CentOS 6/7
 - AlmaLinux 8/9
+- RockyLinux 8/9 (not tested, but it is very likely that it will run)
 - Uncheck Apache and Mysql from the "Monitor" column in "Service Manager" of WHM, to avoid conflict.
 
 ## Installation
