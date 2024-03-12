@@ -24,8 +24,9 @@ There are mechanisms that prevent multiple restarts in a short time, in cases of
 - CentOS 6/7
 - AlmaLinux 8/9
 - RockyLinux 8/9 (not tested, but it is very likely that it will run)
-- Uncheck Apache and Mysql from the "Monitor" column in "Service Manager" of WHM, to avoid conflict.
-
+- CloudLinux 8/9
+- Uncheck Apache and Mysql from the "Monitor" column in "Service Manager" of WHM, to avoid conflict. (done automatically during installation)
+  
 ## Installation
 
 As root:
@@ -42,6 +43,8 @@ chmod 755 rwd
 chkconfig --add rwd
 chkconfig --level 3 rwd on
 service rwd start
+whmapi1 configureservice service='httpd' monitored=0
+whmapi1 configureservice service='mysql' monitored=0
 ```
 
 ## Use
@@ -78,6 +81,8 @@ chkconfig --del rwd
 rm -f /etc/init.d/rwd
 systemctl daemon-reload 2> /dev/null
 rm -Rf /root/scripts/rwd/
+whmapi1 configureservice service='httpd' monitored=1
+whmapi1 configureservice service='mysql' monitored=1
 ```
 
 ## Authors
