@@ -37,6 +37,9 @@ import traceback
 import urllib2
 
 #Changelog
+# 24.1008
+# - Added restartsrv_timeout variable
+# - Implemented use of the timeout_cmd function in all executions of /scripts/restartsrv
 # 23.0526
 # - Changed algorithm of the "total" variable in the get_swap function, since in AlmaLinux 8 
 #   the value from variable "c" was coming with "\t\t" instead of "\t"
@@ -266,7 +269,7 @@ def get_swap(col):
         f.close()
         line = len(c)
         while line > 0:
-                total = (total + int(c[line -1].replace('\t\t', '\t').split('\t')[col]))
+                total = (total + int(c[line -1].replace('\t\t','\t').split('\t')[col]))
                 line = line - 1
         else:
                 return total / 1024 # in MB
@@ -296,7 +299,7 @@ def kill_app(pid, app_name):
                 trace_only = get_exception_only() #etype, value
         timestamp = date_now_log()
         if trace_only:
-                msg = timestamp + ' - Warning: Unable to kill ' + app_name + ' - ' + trace_only + '\n' #canalgama aborta rwd aqui '.'   
+                msg = timestamp + ' - Warning: Unable to kill ' + app_name + ' - ' + trace_only + '\n' #
         else:
                 msg = timestamp + ' - ' + app_name + ' killed\n'
         write_file(log_file, msg)
@@ -336,10 +339,12 @@ def verify_swap():
                         # Restart Apache and MySQL
                         #msg_ka = kill_app(pid_apache, "Apache") # Not compatible with AlmaLinux8
                         #msg_km = kill_app(pid_mysql, "MySQL") # Not compatible with AlmaLinux8
-                        return_apache = os.system('/scripts/restartsrv httpd')
+                        restartsrv_exec = timeout_cmd("/scripts/restartsrv httpd", restartsrv_timeout)
+                        return_apache = restartsrv_exec[0]
                         timestamp_a = date_now_log()
-                        return_mysql  = os.system('/scripts/restartsrv mysql')
-                        timestamp_m = date_now_log()
+                        restartsrv_exec = timeout_cmd("/scripts/restartsrv mysql", restartsrv_timeout)
+                        return_mysql = restartsrv_exec[0]
+                        timestamp_m = date_now_log()                     
                         if return_apache == 0:
                                 msg_ra = timestamp_a + ' - Success to restart Apache\n'
                         else:
@@ -387,7 +392,8 @@ def verify_mysql():
                         if send_top == "on":
                                 top_output = get_stdout_shell(cmd_top)
                 # Restart
-                return_mysql  = os.system('/scripts/restartsrv mysql')
+                restartsrv_exec = timeout_cmd("/scripts/restartsrv mysql", restartsrv_timeout)
+                return_mysql = restartsrv_exec[0]
                 if return_mysql == 0:
                         msg = date_now_log() + ' - Success to restart MySQL\n'
                         write_file(log_file, msg)
@@ -458,8 +464,9 @@ def verify_apache():
                         os.system('for i in `lsof -i :80 | grep http | awk \'{print $2}\'`; do kill -9 $i; done')
                         os.system('for i in `lsof -i :80  | awk \'{print $2}\'`; do echo $i; done')
                         os.system('for i in `ipcs -s | grep nobody | awk \'{print $2}\'`; do ipcrm -s $i; done')
-                return_apache = os.system('/scripts/restartsrv httpd')
-                if return_apache == 0:
+                restartsrv_exec = timeout_cmd("/scripts/restartsrv httpd", restartsrv_timeout)
+                return_apache = restartsrv_exec[0]
+                if return_apache == 0:                        
                         msg = date_now_log() + ' - Success to restart Apache\n'
                         write_file(log_file, msg)
                         d = sleep_lock()
@@ -482,7 +489,7 @@ def verify_apache():
 #                                       Main
 #####################################################################################
 
-version         = "23.0526" # Date format YY.MMDD
+version         = "24.1008" # Date format YY.MMDD
 script_name     = "rwd"
 path            = "/root/scripts/" + script_name + "/"
 conf_file       = path + script_name + ".conf"
@@ -495,6 +502,7 @@ lock_EA         = "/usr/local/apache/AN_EASYAPACHE_BUILD_IS_CURRENTLY_RUNNING"
 pid_file_this   = path + "/" + script_name + ".pid"
 cmd_top         = "export COLUMNS=300 ; top -cbn 1 | sed 's/ *$//g' | grep -v \"top -cbn 1\" | grep -v \"sed 's/ *$//g'\""
 curl_timeout    = 6 # seconds
+restartsrv_timeout = 15
 
 # Call function get_semi_constants
 get_semi_constants()
