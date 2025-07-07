@@ -81,8 +81,8 @@ chkconfig --del rwd
 rm -f /etc/init.d/rwd
 systemctl daemon-reload 2> /dev/null
 rm -Rf /root/scripts/rwd/
-whmapi1 configureservice service='httpd' monitored=1
-whmapi1 configureservice service='mysql' monitored=1
+whmapi1 configureservice service='httpd' monitored=0
+whmapi1 configureservice service='mysql' monitored=0
 ```
 
 ## Authors
