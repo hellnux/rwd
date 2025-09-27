@@ -26,6 +26,8 @@
 # SOFTWARE.
 
 #Changelog
+# 25.0331
+#  - Add option /opt/python2.7/bin/python2.7
 # 23.0918
 #  - Implemented WHM compatibility in AlmaLinux 9, in the python 2.x check
 #  - Modified grep on status function for binary file
@@ -46,7 +48,7 @@ function dateNow () {
 }
 
 function number_args(){
-	if [ $number_args -ne $1 ]; then usage; fi  
+	if [ $number_args -ne $1 ]; then usage; fi
 }
 
 function get_pid(){
@@ -55,13 +57,13 @@ function get_pid(){
 
 function status(){
 	if [ -e "$pid_file" ]; then
-	    pid=`get_pid`
-	    kill -0 "$pid" 2> /dev/null
-	    if [ "$?" == "0" ] && [ -n "$(grep -aF "$executable" /proc/$pid/cmdline | tr -d '\0')" ]; then 
-	            status="Started"
-	    else
-	            status="Stopped"
-	    fi
+		pid=`get_pid`
+		kill -0 "$pid" 2> /dev/null
+		if [ "$?" == "0" ] && [ -n "$(grep -aF "$executable" /proc/$pid/cmdline | tr -d '\0')" ]; then
+			status="Started"
+		else
+			status="Stopped"
+		fi
 	else
 		status="Stopped"
 	fi
@@ -79,10 +81,10 @@ function status_to_log() {
 
 function start(){
 	if [ "`status`" == "Started" ]; then
-	        echo "[`dateNow`] Error: '$script_name' is already running with the pid: `get_pid`"
+		echo "[`dateNow`] Error: '$script_name' is already running with the pid: `get_pid`"
 			exit 3
 	else
-	        $py_exec "$path/$executable" &
+		$py_exec "$path/$executable" &
 	#status_to_log #start is made on main code
 	fi
 }
@@ -122,18 +124,20 @@ if [ "$(python -c 'import sys; print sys.version_info' 2> /dev/null | grep "(2,"
 	py_exec="python"
 elif [ "$(python2 -c 'import sys; print sys.version_info' 2> /dev/null)" != "" ]; then
 	py_exec="python2"
-elif [ -e /usr/local/cpanel/3rdparty/bin/python2.7 ]; then # WHM AlmaLinux 9.x
+elif [ -e /usr/local/cpanel/3rdparty/bin/python2.7 ]; then # AlmaLinux 9.x; until WHM 11.24
 	py_exec="/usr/local/cpanel/3rdparty/bin/python2.7"
+elif [ -e /opt/python2.7/bin/python2.7 ]; then
+	py_exec="/opt/python2.7/bin/python2.7"
 else
-	echo "Error: python 2.x not found."	
+	echo "Error: python 2.x not found."
 	exit 2
 fi
 
 case "$main_arg" in
-	start)	  number_args 1; start  ;;
+	start)    number_args 1; start  ;;
 	stop)     number_args 1; stop   ;;
 	restart)  number_args 1; restart;;
-	status)	  number_args 1; status ;;
+	status)   number_args 1; status ;;
 	*) usage ;;
 esac
 
