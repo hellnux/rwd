@@ -21,6 +21,7 @@ There are mechanisms that prevent multiple restarts in a short time, in cases of
 ## Prerequisites
 
 - WHM/cPanel
+- Python 2
 - CentOS 6/7
 - AlmaLinux 8/9
 - RockyLinux 8/9 (not tested, but it is very likely that it will run)
@@ -29,8 +30,18 @@ There are mechanisms that prevent multiple restarts in a short time, in cases of
   
 ## Installation
 
-As root:
+Python 2 has been removed from WHM 126, and can be installed without harming WHM. As root:
+```
+cd /usr/local/src
+wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+tar xzf Python-2.7.18.tgz
+cd Python-2.7.18
+./configure --prefix=/opt/python2.7
+make && make altinstall
+ln -s /opt/python2.7/bin/python2.7 /usr/bin/python2
+```
 
+rwd install:
 ```
 mkdir -p /root/scripts/ 2> /dev/null
 cd /root/scripts/
