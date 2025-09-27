@@ -30,7 +30,7 @@ There are mechanisms that prevent multiple restarts in a short time, in cases of
   
 ## Installation
 
-Python 2 has been removed from WHM 126, and can be installed without harming WHM. As root:
+Python 2 has been removed from WHM 126 on AlmaLinux 9, and can be installed without harming WHM. As root:
 ```
 cd /usr/local/src
 wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
