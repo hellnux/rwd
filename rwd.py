@@ -37,6 +37,16 @@ import traceback
 import urllib2
 
 #Changelog
+# 26.0623
+# - Added is_cpanel_backup_running() function
+# - Added a backup-running check to verify_swap() to prevent MySQL restarts during backups
+# - Changed verify_mysql() with fallback to force restart MySQL
+# 26.0622
+# - Increased restartsrv_timeout from 15 to 25
+# 26.0618
+# - Implemented "--connect-timeout=6" on verify_mysql function
+# 26.0522
+# - New get_swap, to avoid: verify_swap():ValueError: invalid literal for int() with base 10: 
 # 24.1008
 # - Added restartsrv_timeout variable
 # - Implemented use of the timeout_cmd function in all executions of /scripts/restartsrv
@@ -261,18 +271,34 @@ def check_pid(pid, cmdline_part):
         else:
                 return False
 
+# def get_swap(col):
+#         '''Return info of swap by argument (-3=size ; -2=used)'''
+#         total = 0
+#         f = open(swap_file,'r')
+#         c = f.readlines()[1:] #Ignore first line
+#         f.close()
+#         line = len(c)
+#         while line > 0:
+#                 total = (total + int(c[line -1].replace('\t\t','\t').split('\t')[col]))
+#                 line = line - 1
+#         else:
+#                 return total / 1024 # in MB
+
 def get_swap(col):
         '''Return info of swap by argument (-3=size ; -2=used)'''
         total = 0
-        f = open(swap_file,'r')
-        c = f.readlines()[1:] #Ignore first line
+        f = open(swap_file, 'r')
+        c = f.readlines()[1:] # Ignore first line
         f.close()
-        line = len(c)
-        while line > 0:
-                total = (total + int(c[line -1].replace('\t\t','\t').split('\t')[col]))
-                line = line - 1
-        else:
-                return total / 1024 # in MB
+        for line in c:
+                parts = line.split()
+                if len(parts) < 5:
+                        continue
+                try:
+                        total += int(parts[col])
+                except (ValueError, IndexError):
+                        continue
+        return total / 1024 # in MB                
 
 def get_stdout_shell(cmd):
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -318,7 +344,16 @@ def timeout_cmd(cmd, timeout):
                         return [ 1, None ] # timeout
         return [ process.returncode, process.stdout.read() ] #list
 
+def is_cpanel_backup_running():
+        cmd = (
+                "pgrep -f 'backup' > /dev/null 2>&1 || "
+                "pgrep -f 'pkgacct' > /dev/null 2>&1"
+        )
+        return os.system(cmd) == 0    
+
 def verify_swap():
+        if is_cpanel_backup_running():
+                return "abort"
         if "sleep_lock_swap" not in str(threading.enumerate()):
                 swap_total = get_swap(-3)
                 swap_used  = get_swap(-2)
@@ -377,38 +412,111 @@ def verify_swap():
                                         ls.start() # "LockSwap.start"
                         time.sleep(1)
 
+# def verify_mysql():
+#         if os.path.isfile(lock_EA):
+#                 return "abort"
+#         status_mysql = os.system('su root -c "/usr/bin/mysqladmin --connect-timeout=6 ping" > /dev/null 2>&1')
+#         if status_mysql != 0:
+#                 msg = date_now_log() + ' - Initiated attempt to restart MySQL\n'
+#                 write_file(log_file, msg)
+#                 if send_emails == "on":
+#                         body = msg + '\nIP: ' + ip_server
+#                         th = threading.Thread(target=send_mail, name="send_mail", args=(body,subject,))
+#                         th.start()
+#                         # Generate output of top
+#                         if send_top == "on":
+#                                 top_output = get_stdout_shell(cmd_top)
+#                 # Restart
+#                 restartsrv_exec = timeout_cmd("/scripts/restartsrv mysql", restartsrv_timeout)
+#                 return_mysql = restartsrv_exec[0]
+#                 if return_mysql == 0:
+#                         msg = date_now_log() + ' - Success to restart MySQL\n'
+#                         write_file(log_file, msg)
+#                         d = sleep_lock() # delay restart
+#                         d.start()
+#                 else:
+#                         msg = date_now_log() + ' - Failed to restart MySQL\n'
+#                         write_file(log_file, msg)
+#                 # Send mail
+#                 if send_emails == "on":
+#                         if send_top == "off":
+#                                 send_mail(msg, subject)
+#                         else: # top on
+#                                 msg = msg + '\n\n' + top_output
+#                                 send_mail(msg, subject_top)
+#                 time.sleep(1)
+
 def verify_mysql():
         if os.path.isfile(lock_EA):
                 return "abort"
-        status_mysql = os.system('su root -c "/usr/bin/mysqladmin ping" > /dev/null 2>&1')
+        # Check if MySQL/MariaDB is responding
+        status_mysql = os.system('su root -c "/usr/bin/mysqladmin --connect-timeout=6 ping" > /dev/null 2>&1')
         if status_mysql != 0:
+                # Get TOP output before any action
+                if send_emails == "on" and send_top == "on":
+                        top_output = get_stdout_shell(cmd_top)
+                # Restart by WHM
                 msg = date_now_log() + ' - Initiated attempt to restart MySQL\n'
                 write_file(log_file, msg)
                 if send_emails == "on":
                         body = msg + '\nIP: ' + ip_server
-                        th = threading.Thread(target=send_mail, name="send_mail", args=(body,subject,))
+                        th = threading.Thread(target=send_mail, name="send_mail", args=(body, subject,))
                         th.start()
-                        # Generate output of top
-                        if send_top == "on":
-                                top_output = get_stdout_shell(cmd_top)
-                # Restart
                 restartsrv_exec = timeout_cmd("/scripts/restartsrv mysql", restartsrv_timeout)
                 return_mysql = restartsrv_exec[0]
+                # Restart reported success, verify service
                 if return_mysql == 0:
-                        msg = date_now_log() + ' - Success to restart MySQL\n'
+                        time.sleep(5)
+                        status_mysql = os.system('su root -c "/usr/bin/mysqladmin --connect-timeout=6 ping" > /dev/null 2>&1')
+                        if status_mysql == 0:
+                                msg = date_now_log() + ' - Success to restart MySQL\n'
+                                write_file(log_file, msg)
+                                d = sleep_lock()
+                                d.start()
+                        else:
+                                return_mysql = 1
+                # Fallback: Force restart
+                if return_mysql != 0:
+                        msg = date_now_log() + ' - A forced attempt to restart MySQL has been initiated.\n'
                         write_file(log_file, msg)
-                        d = sleep_lock() # delay restart
-                        d.start()
-                else:
-                        msg = date_now_log() + ' - Failed to restart MySQL\n'
-                        write_file(log_file, msg)
+                        if send_emails == "on":
+                                body = msg + '\nIP: ' + ip_server
+                                th = threading.Thread(target=send_mail, name="send_mail", args=(body, subject,))
+                                th.start()                        
+                        # Detect installed service
+                        service_name = "mysql"
+                        process_name = "mysqld"
+                        if os.system("systemctl list-unit-files | grep -q '^mariadb.service'") == 0:
+                                service_name = "mariadb"
+                                process_name = "mariadbd"
+                        # Kill remaining processes
+                        os.system("pidof %s >/dev/null 2>&1 && kill -9 $(pidof %s) >/dev/null 2>&1" % (process_name, process_name))
+                        time.sleep(2)
+                        # Check if process still exists
+                        if os.system("pidof %s >/dev/null 2>&1" % process_name) == 0:
+                                msg = date_now_log() + ' - Failed to terminate MySQL process.\n'
+                                write_file(log_file, msg)
+                        # Reset failed state
+                        os.system("systemctl reset-failed %s >/dev/null 2>&1" % service_name)
+                        # Start service
+                        os.system("systemctl start %s >/dev/null 2>&1" % service_name)
+                        # Verify service
+                        time.sleep(5)
+                        status_mysql = os.system('su root -c "/usr/bin/mysqladmin --connect-timeout=6 ping" > /dev/null 2>&1')
+                        if status_mysql == 0:
+                                msg = date_now_log() + ' - Forcing a MySQL restart was successful.\n'
+                                write_file(log_file, msg)
+                                d = sleep_lock()
+                                d.start()
+                        else:
+                                msg = date_now_log() + ' - Failed to force restart MySQL.\n'
+                                write_file(log_file, msg)
                 # Send mail
                 if send_emails == "on":
                         if send_top == "off":
                                 send_mail(msg, subject)
-                        else: # top on
-                                msg = msg + '\n\n' + top_output
-                                send_mail(msg, subject_top)
+                        else:
+                                send_mail(msg + '\n\n' + top_output, subject_top)
                 time.sleep(1)
 
 def verify_apache():
@@ -489,7 +597,7 @@ def verify_apache():
 #                                       Main
 #####################################################################################
 
-version         = "24.1008" # Date format YY.MMDD
+version         = "26.0623" # Date format YY.MMDD
 script_name     = "rwd"
 path            = "/root/scripts/" + script_name + "/"
 conf_file       = path + script_name + ".conf"
@@ -502,7 +610,7 @@ lock_EA         = "/usr/local/apache/AN_EASYAPACHE_BUILD_IS_CURRENTLY_RUNNING"
 pid_file_this   = path + "/" + script_name + ".pid"
 cmd_top         = "export COLUMNS=300 ; top -cbn 1 | sed 's/ *$//g' | grep -v \"top -cbn 1\" | grep -v \"sed 's/ *$//g'\""
 curl_timeout    = 6 # seconds
-restartsrv_timeout = 15
+restartsrv_timeout = 25
 
 # Call function get_semi_constants
 get_semi_constants()
