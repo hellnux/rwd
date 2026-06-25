@@ -26,6 +26,8 @@
 # SOFTWARE.
 
 #Changelog
+# 26.0623
+#  - Implemented forcefully disable WHM monitoring for httpd and mysql on start function
 # 25.0331
 #  - Add option /opt/python2.7/bin/python2.7
 # 23.0918
@@ -71,9 +73,9 @@ function status(){
 }
 
 function status_to_log() {
-	dateTmp=`dateNow`
+	#dateTmp=`dateNow`
 	if [ "`status`" == "Stopped" ]; then
-		echo "$dateTmp - $script_name Stopped" >> "$log_file"
+		echo "`dateNow` - $script_name Stopped" >> "$log_file"
 	#else #start is made on main code
 	#	echo "$dateTmp - $script_name Started" >> "$log_file"
 	fi
@@ -84,6 +86,10 @@ function start(){
 		echo "[`dateNow`] Error: '$script_name' is already running with the pid: `get_pid`"
 			exit 3
 	else
+		whmapi1 configureservice service='httpd' monitored=0 2> /dev/null #prerequiste
+		echo "`dateNow` - Forcefully disabled WHM monitoring for httpd service." >> "$log_file"
+		whmapi1 configureservice service='mysql' monitored=0 2> /dev/null #prerequiste
+		echo "`dateNow` - Forcefully disabled WHM monitoring for mysql service." >> "$log_file"
 		$py_exec "$path/$executable" &
 	#status_to_log #start is made on main code
 	fi
