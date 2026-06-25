@@ -12,7 +12,7 @@ Initially developed to cover the WHM/cPanel monitor deficiency. Started in April
 
 Each cycle of 20 seconds (default) is performed 3 types of checks:
 
-1. Swap - By default, upon reaching 50% swap usage, Apache and MySQL will be restarted.
+1. Swap - By default, upon reaching 50% swap usage, Apache and MySQL will be restarted. Except when WHM running backup.
 2. MySQL - If MySQL is not running, MySQL will be restarted.
 3. Apache - If Apache is not online or the server is overloaded, Apache will restart.
 
@@ -22,11 +22,11 @@ There are mechanisms that prevent multiple restarts in a short time, in cases of
 
 - WHM/cPanel
 - Python 2
-- CentOS 6/7
+- CentOS 6/7 (deprecated – not tested on recent versions)
 - AlmaLinux 8/9
 - RockyLinux 8/9 (not tested, but it is very likely that it will run)
 - CloudLinux 8/9
-- Uncheck Apache and Mysql from the "Monitor" column in "Service Manager" of WHM, to avoid conflict. (done automatically during installation)
+- Uncheck Apache and Mysql from the "Monitor" column in "Service Manager" of WHM, to avoid conflict. (done automatically during installation or on rwd startup)
   
 ## Installation
 
